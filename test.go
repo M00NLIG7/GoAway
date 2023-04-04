@@ -1,46 +1,42 @@
 package main
 
 import (
-	"bytes"
 	"fmt"
+	"io/ioutil"
+	"myproject/assets"
 	"os"
 	"os/exec"
-
-	"github.com/M00NLIG7/GoAway/assets"
 )
 
+
 func main() {
-	// Get the Psexec.exe binary from the assets package
-	bin, err := assets.Asset("Psexec.exe")
+	// Retrieve the contents of Psexec.exe from the embedded assets
+	data, err := assets.Must
 	if err != nil {
 		panic(err)
 	}
 
-	// Create a command to execute the Psexec.exe binary from memory
-	cmd := exec.Command("", "")
-	cmd.Path = "cmd.exe"
-	cmd.Stdin = bytes.NewReader(bin)
-
-	// Add Psexec.exe arguments
-	cmd.Args = append(cmd.Args, "/c", "Psexec.exe", "\\\\REMOTE_HOSTNAME", "-u", "USERNAME", "-p", "PASSWORD", "COMMAND")
-
-	// Set the command's environment variables
-	cmd.Env = os.Environ()
-
-	// Set the command's working directory to the current directory
-	cmd.Dir = "."
-
-	// Redirect the command's standard input, output, and error to the current process's
-	// standard input, output, and error
-	cmd.Stdin = os.Stdin
-	cmd.Stdout = os.Stdout
-	cmd.Stderr = os.Stderr
-
-	// Run the command
-	err = cmd.Run()
+	// Write the contents of Psexec.exe to a temporary file
+	tmpfile, err := ioutil.TempFile("", "psexec.*.exe")
+	if err != nil {
+		panic(err)
+	}
+	defer os.Remove(tmpfile.Name()) // clean up the temporary file when we're done
+	_, err = tmpfile.Write(data)
+	if err != nil {
+		panic(err)
+	}
+	err = tmpfile.Close()
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("Done.")
+	// Execute the temporary file with the specified command-line arguments
+	cmd := exec.Command(tmpfile.Name(), "\\\\REMOTE_HOSTNAME", "-u", "USERNAME", "-p", "PASSWORD", "COMMAND")
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		panic(err)
+	}
+
+	fmt.Println(string(output))
 }

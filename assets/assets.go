@@ -3,7 +3,7 @@
 // assets/PsExec.exe
 // DO NOT EDIT!
 
-package main
+package assets
 
 import (
 	"bytes"
